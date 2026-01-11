@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Lời Chúc Năm Mới</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: black;
+  color: white;
+}
+video {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+}
+.card {
+  max-width: 420px;
+  margin: 18vh auto;
+  background: rgba(0,0,0,0.6);
+  padding: 24px;
+  border-radius: 16px;
+  text-align: center;
+}
+input, textarea {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 16px;
+}
+button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 999px;
+  border: none;
+  background: #ff2d2d;
+  color: white;
+  font-size: 16px;
+}
+</style>
+</head>
+
+<body>
+
+<video autoplay muted loop playsinline>
+  <source src="video.mp4" type="video/mp4">
+</video>
+
+<div class="card">
+  <h2 id="title">🎊 Viết Lời Chúc Đầu Tiên 🎊</h2>
+
+  <input id="name" placeholder="Tên của bạn..." />
+  <textarea id="text" placeholder="Nhập lời chúc của bạn..."></textarea>
+
+  <p id="from"></p>
+
+  <button id="saveBtn">Lưu lời chúc 💾</button>
+  <button onclick="speak()">Nghe lời chúc 🎧</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+      apiKey: "AIzaSyD9sa4aOaslrlVruI1N8Yb_T3DNw_wL0EY",
+    authDomain: "nfc-newyear.firebaseapp.com",
+    projectId: "nfc-newyear",
+    storageBucket: "nfc-newyear.firebasestorage.app",
+    messagingSenderId: "596531180910",
+    appId: "1:596531180910:web:b041e5bb43f1ad9d8f7d7f"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const nfcId = "newyear-card-001";
+const ref = doc(db, "messages", nfcId);
+
+const nameInput = document.getElementById("name");
+const textArea = document.getElementById("text");
+const saveBtn = document.getElementById("saveBtn");
+const title = document.getElementById("title");
+const from = document.getElementById("from");
+
+let localKey = localStorage.getItem("editKey_" + nfcId);
+
+const snap = await getDoc(ref);
+
+if (snap.exists()) {
+  const data = snap.data();
+  nameInput.value = data.name;
+  textArea.value = data.text;
+  from.innerText = "💌 Lời chúc từ " + data.name;
+
+  if (localKey !== data.editKey) {
+    nameInput.readOnly = true;
+    textArea.readOnly = true;
+    saveBtn.style.display = "none";
+    title.innerText = "🎉 Lời Chúc Năm Mới 🎉";
+  } else {
+    title.innerText = "✏️ Bạn có thể chỉnh sửa";
+  }
+}
+
+saveBtn.onclick = async () => {
+  const name = nameInput.value.trim();
+  const text = textArea.value.trim();
+  if (!name || !text) {
+    alert("Nhập đủ tên và lời chúc nha");
+    return;
+  }
+
+  if (!snap.exists()) {
+    localKey = crypto.randomUUID();
+    localStorage.setItem("editKey_" + nfcId, localKey);
+
+    await setDoc(ref, {
+      name,
+      text,
+      editKey: localKey,
+      createdAt: Date.now()
+    });
+  } else {
+    await updateDoc(ref, {
+      name,
+      text,
+      updatedAt: Date.now()
+    });
+  }
+
+  alert("Đã lưu 🎉");
+  location.reload();
+};
+
+window.speak = () => {
+  const msg = new SpeechSynthesisUtterance(textArea.value);
+  msg.lang = "vi-VN";
+  msg.rate = 0.95;
+  msg.pitch = 1.1;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(msg);
+};
+</script>
+
+</body>
+</html>
